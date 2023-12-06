@@ -1,28 +1,31 @@
 import pytest
-import csv
+from models.provider import UserProvider, CsvUserProvider, ApiUserProvider, DatabaseUserProvider
+from models.users import User, USER_ADULT_AGE, Status, Worker
 
+
+@pytest.fixture(params=[CsvUserProvider])
+def user_provider(request) -> UserProvider:
+    return request.param()
+@pytest.fixture
+def users(user_provider) -> list[User]:
+    return user_provider.get_users()
 
 @pytest.fixture
-def users():
-    with open("users.csv") as f:
-        users = list(csv.DictReader(f, delimiter=";"))
-    return users
-
-@pytest.fixture
-def workers(users):
+def workers(users) -> list[Worker]:
     """
     Берем только работников из списка
     """
-    workers = [user for user in users if user["status"] == "worker"]  # - возьми каждого пользователя из списка пользователей со статусом worker и положи в user
+    workers = [Worker(name=user.name, age=user.age, item=user.items) for user in users if user.status == Status.worker]  # - возьми каждого пользователя из списка пользователей со статусом worker и положи в user
     return workers
 
-def user_is_adulr(user):
-    return int(user["age"]) >= 18
 
-def test_workers_are_adults_v2(workers):
+
+def test_workers_are_adults_v3(workers):
     """
     Тестируем что все работники старше 18 лет
     """
     for worker in workers:
-        assert user_is_adulr(worker), f"Worker {worker['name']} младше 28 лет"
+        assert worker.is_adult(), f"Worker {worker.name} младше {USER_ADULT_AGE} лет"
+
+
 
